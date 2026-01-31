@@ -7,8 +7,6 @@
 - 🔥 24 小時內更新標記
 - 📊 即時版本追蹤
 - 📱 響應式設計
- 
-<img width="2850" height="1814" alt="CleanShot 2026-01-31 at 17 02 50@2x" src="https://github.com/user-attachments/assets/3f73932f-335a-4d2f-a0e3-5b321cae370a" />
 
 <img width="2846" height="1632" alt="CleanShot 2026-01-31 at 16 59 45@2x" src="https://github.com/user-attachments/assets/473e9a06-0a21-436f-b2e4-4d0939519833" />
 
