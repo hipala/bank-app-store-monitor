@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Store 版本監測 Dashboard</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4A90E2;
+            --primary-hover: #357ABD;
+            --secondary: #E8505B;
+            --bg-main: #F5F7FA;
+            --bg-card: #FFFFFF;
+            --text-primary: #2C3E50;
+            --text-secondary: #7F8C8D;
+            --border: #E1E8ED;
+            --success: #52C41A;
+            --warning: #FAAD14;
+            --shadow: rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            margin-bottom: 2.5rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 400;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: 'Noto Sans TC', sans-serif;
+            background: white;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .progress-indicator {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, rgba(74, 144, 226, 0.1), rgba(74, 144, 226, 0.05));
+            border-radius: 12px;
+            border: 1px solid rgba(74, 144, 226, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .progress-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.8rem;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            max-width: 500px;
+            height: 8px;
+            background: var(--bg-main);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-hover));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .app-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px var(--shadow);
+            animation: fadeInUp 0.5s ease-out;
+            animation-fill-mode: both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .app-card:nth-child(1) { animation-delay: 0.05s; }
+        .app-card:nth-child(2) { animation-delay: 0.1s; }
+        .app-card:nth-child(3) { animation-delay: 0.15s; }
+        .app-card:nth-child(4) { animation-delay: 0.2s; }
+        .app-card:nth-child(5) { animation-delay: 0.25s; }
+        .app-card:nth-child(6) { animation-delay: 0.3s; }
+        .app-card:nth-child(7) { animation-delay: 0.35s; }
+        .app-card:nth-child(8) { animation-delay: 0.4s; }
+        .app-card:nth-child(9) { animation-delay: 0.45s; }
+        .app-card:nth-child(10) { animation-delay: 0.5s; }
+        .app-card:nth-child(11) { animation-delay: 0.55s; }
+        .app-card:nth-child(12) { animation-delay: 0.6s; }
+        .app-card:nth-child(13) { animation-delay: 0.65s; }
+        .app-card:nth-child(14) { animation-delay: 0.7s; }
+        .app-card:nth-child(15) { animation-delay: 0.75s; }
+        .app-card:nth-child(16) { animation-delay: 0.8s; }
+
+        .app-card:hover {
+            box-shadow: 0 4px 16px var(--shadow);
+            transform: translateY(-2px);
+        }
+
+        .app-header {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .app-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            background: var(--bg-main);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .app-icon:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .app-info h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .app-info h3:hover {
+            color: var(--primary);
+        }
+
+        .app-id {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .version-info {
+            background: var(--bg-main);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .version-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+
+        .version-number {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .version-date {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .release-notes {
+            background: white;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .release-notes h4 {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .release-notes p {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.8rem;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-loading {
+            background: #FFF7E6;
+            color: var(--warning);
+        }
+
+        .status-success {
+            background: #F6FFED;
+            color: var(--success);
+        }
+
+        .status-error {
+            background: #FFF1F0;
+            color: var(--secondary);
+        }
+
+        .new-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.3rem 0.7rem;
+            background: linear-gradient(135deg, #FF6B35, #FF8C42);
+            color: white;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { 
+                box-shadow: 0 0 10px rgba(255, 107, 53, 0.4);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 20px rgba(255, 107, 53, 0.6);
+                transform: scale(1.05);
+            }
+        }
+
+        .spinner {
+            width: 12px;
+            height: 12px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .lottie-container {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+        }
+
+        .loading-skeleton {
+            background: linear-gradient(90deg, var(--bg-main) 0%, #E8E8E8 50%, var(--bg-main) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 6px;
+            height: 20px;
+            margin: 0.5rem 0;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .error-message {
+            background: #FFF1F0;
+            border: 1px solid #FFCCC7;
+            border-radius: 8px;
+            padding: 1rem;
+            color: var(--secondary);
+            font-size: 0.9rem;
+        }
+
+        .last-updated {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 2rem 0 1rem 0;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .section-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            padding: 0 0.5rem;
+            background: var(--bg-main);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .empty-section {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            background: var(--bg-card);
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .empty-section-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .apps-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .app-container {
+                padding: 1rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+
+            .search-box {
+                max-width: 100%;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .app-card {
+                padding: 1.2rem;
+            }
+
+            .app-icon {
+                width: 56px;
+                height: 56px;
+            }
+
+            .app-info h3 {
+                font-size: 1rem;
+            }
+
+            .version-number {
+                font-size: 1.1rem;
+            }
+
+            .release-notes {
+                padding: 0.8rem;
+            }
+
+            .section-title {
+                font-size: 1rem;
+                margin: 1.5rem 0 0.8rem 0;
+            }
+
+            .progress-text {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Lottie 動畫組件
+        function LottieLoader() {
+            const containerRef = useRef(null);
+
+            useEffect(() => {
+                if (containerRef.current) {
+                    const animation = lottie.loadAnimation({
+                        container: containerRef.current,
+                        renderer: 'svg',
+                        loop: true,
+                        autoplay: true,
+                        path: 'https://lottie.host/d7512b3c-93b1-454c-8d5d-2e29eb222e0b/jL3lqCmODM.json'
+                    });
+
+                    return () => animation.destroy();
+                }
+            }, []);
+
+            return <div ref={containerRef} className="lottie-container"></div>;
+        }
+
+        const DEFAULT_APPS = [
+            {
+                id: '393497156',
+                name: '永豐銀行',
+                url: 'https://apps.apple.com/tw/app/%E6%B0%B8%E8%B1%90%E9%8A%80%E8%A1%8C%E8%A1%8C%E5%8B%95%E9%8A%80%E8%A1%8C/id393497156'
+            },
+            {
+                id: '1494273814',
+                name: '永豐大戶 DAWHO',
+                url: 'https://apps.apple.com/tw/app/%E6%B0%B8%E8%B1%90%E9%8A%80%E8%A1%8C%E5%A4%A7%E6%88%B6dawho/id1494273814'
+            },
+            {
+                id: '373500505',
+                name: '國泰銀行',
+                url: 'https://apps.apple.com/tw/app/%E5%9C%8B%E6%B3%B0%E4%B8%96%E8%8F%AF%E7%B6%B2%E8%B7%AF%E9%8A%80%E8%A1%8Ccube/id373500505'
+            },
+            {
+                id: '6479990131',
+                name: '富邦銀行',
+                url: 'https://apps.apple.com/tw/app/fubon-%E5%8F%B0%E5%8C%97%E5%AF%8C%E9%82%A6%E8%A1%8C%E5%8B%95%E9%8A%80%E8%A1%8C/id6479990131'
+            },
+            {
+                id: '417698185',
+                name: '中國信託',
+                url: 'https://apps.apple.com/tw/app/%E4%B8%AD%E5%9C%8B%E4%BF%A1%E8%A8%97%E8%A1%8C%E5%8B%95%E9%8A%80%E8%A1%8C/id417698185'
+            },
+            {
+                id: '1527512597',
+                name: 'LINE Bank',
+                url: 'https://apps.apple.com/tw/app/line-bank-taiwan/id1527512597'
+            },
+            {
+                id: '388917170',
+                name: '台新銀行',
+                url: 'https://apps.apple.com/tw/app/%E5%8F%B0%E6%96%B0%E9%8A%80%E8%A1%8C-%E8%A1%8C%E5%8B%95%E9%8A%80%E8%A1%8C/id388917170'
+            },
+            {
+                id: '1079733142',
+                name: 'Richart',
+                url: 'https://apps.apple.com/tw/app/richart/id1079733142'
+            },
+            {
+                id: '1446229166',
+                name: '第一銀行 iLEO',
+                url: 'https://apps.apple.com/tw/app/%E7%AC%AC%E4%B8%80%E9%8A%80%E8%A1%8C-ileo/id1446229166'
+            },
+            {
+                id: '405033836',
+                name: '玉山行動銀行',
+                url: 'https://apps.apple.com/tw/app/%E7%8E%89%E5%B1%B1%E8%A1%8C%E5%8B%95%E9%8A%80%E8%A1%8C/id405033836'
+            },
+            {
+                id: '1528472238',
+                name: '將來銀行 NEXT BANK',
+                url: 'https://apps.apple.com/tw/app/%E5%B0%87%E4%BE%86%E9%8A%80%E8%A1%8C-next-bank/id1528472238'
+            },
+            {
+                id: '6499507336',
+                name: '元大行動銀行',
+                url: 'https://apps.apple.com/tw/app/%E5%85%83%E5%A4%A7%E8%A1%8C%E5%8B%95%E9%8A%80%E8%A1%8C-yuanta-commercial-bank/id6499507336'
+            },
+            {
+                id: '1461448957',
+                name: '兆豐銀行',
+                url: 'https://apps.apple.com/tw/app/%E5%85%86%E8%B1%90%E9%8A%80%E8%A1%8C/id1461448957'
+            },
+            {
+                id: '1616828713',
+                name: '華南銀行',
+                url: 'https://apps.apple.com/tw/app/%E8%8F%AF%E5%8D%97%E9%8A%80%E8%A1%8C/id1616828713'
+            },
+            {
+                id: '1301131992',
+                name: '土銀行動銀行',
+                url: 'https://apps.apple.com/tw/app/%E5%9C%9F%E9%8A%80%E8%A1%8C%E5%8B%95%E9%8A%80%E8%A1%8C/id1301131992'
+            },
+            {
+                id: '432274183',
+                name: '合作金庫銀行',
+                url: 'https://apps.apple.com/tw/app/%E5%90%88%E4%BD%9C%E9%87%91%E5%BA%AB%E9%8A%80%E8%A1%8C/id432274183'
+            }
+        ];
+
+        function AppStoreMonitor() {
+            const apps = DEFAULT_APPS; // 使用固定清單
+            const [appsData, setAppsData] = useState({});
+            const [loading, setLoading] = useState({});
+            const [lastUpdated, setLastUpdated] = useState(null);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [checkingProgress, setCheckingProgress] = useState({ current: 0, total: 0 });
+
+            const extractAppId = (url) => {
+                const match = url.match(/id(\d+)/);
+                return match ? match[1] : null;
+            };
+
+            const fetchAppInfo = async (app) => {
+                setLoading(prev => ({ ...prev, [app.id]: true }));
+                
+                const startTime = Date.now(); // 記錄開始時間
+                
+                try {
+                    // 使用 iTunes Lookup API
+                    const response = await fetch(`https://itunes.apple.com/lookup?id=${app.id}&country=tw&lang=zh_tw`);
+                    const data = await response.json();
+                    
+                    if (data.resultCount === 0) {
+                        throw new Error('找不到此 App');
+                    }
+
+                    const appInfo = data.results[0];
+                    
+                    // 格式化日期
+                    const releaseDate = new Date(appInfo.currentVersionReleaseDate);
+                    const formattedDate = releaseDate.toLocaleDateString('zh-TW', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+
+                    setAppsData(prev => ({
+                        ...prev,
+                        [app.id]: {
+                            version: appInfo.version,
+                            releaseDate: formattedDate,
+                            releaseDateISO: appInfo.currentVersionReleaseDate,
+                            releaseNotes: appInfo.releaseNotes || '無更新說明',
+                            appName: appInfo.trackName,
+                            artistName: appInfo.artistName,
+                            artworkUrl: appInfo.artworkUrl512 || appInfo.artworkUrl100,
+                            price: appInfo.formattedPrice,
+                            rating: appInfo.averageUserRating,
+                            ratingCount: appInfo.userRatingCount
+                        }
+                    }));
+                } catch (error) {
+                    console.error('Error fetching app info:', error);
+                    setAppsData(prev => ({
+                        ...prev,
+                        [app.id]: { error: '無法取得 App 資訊：' + error.message }
+                    }));
+                } finally {
+                    // 確保至少顯示 1 秒的載入動畫
+                    const elapsedTime = Date.now() - startTime;
+                    const remainingTime = Math.max(0, 1000 - elapsedTime);
+                    
+                    setTimeout(() => {
+                        setLoading(prev => ({ ...prev, [app.id]: false }));
+                    }, remainingTime);
+                }
+            };
+
+            const checkAllApps = async () => {
+                setLastUpdated(new Date());
+                setCheckingProgress({ current: 0, total: apps.length });
+                
+                for (let i = 0; i < apps.length; i++) {
+                    setCheckingProgress({ current: i + 1, total: apps.length });
+                    await fetchAppInfo(apps[i]);
+                }
+                
+                // 檢查完成後清除進度
+                setTimeout(() => {
+                    setCheckingProgress({ current: 0, total: 0 });
+                }, 1000);
+            };
+
+            // 搜尋過濾
+            const filteredApps = apps.filter(app => {
+                if (!searchQuery) return true;
+                const query = searchQuery.toLowerCase();
+                const appName = appsData[app.id]?.appName || app.name;
+                return appName.toLowerCase().includes(query);
+            });
+
+            // 開啟 App Store 頁面
+            const openAppStore = (url) => {
+                window.open(url, '_blank');
+            };
+
+            // 判斷是否在7日內更新
+            const isRecentlyUpdated = (appId) => {
+                const data = appsData[appId];
+                if (!data || !data.releaseDateISO) return false;
+                const now = new Date();
+                const release = new Date(data.releaseDateISO);
+                const diffTime = Math.abs(now - release);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays <= 7;
+            };
+
+            // 判斷是否在24小時內更新
+            const isNew24Hours = (appId) => {
+                const data = appsData[appId];
+                if (!data || !data.releaseDateISO) return false;
+                const now = new Date();
+                const release = new Date(data.releaseDateISO);
+                const diffTime = Math.abs(now - release);
+                const diffHours = diffTime / (1000 * 60 * 60);
+                return diffHours <= 24;
+            };
+
+            // 分類和排序 Apps
+            const categorizedApps = filteredApps.reduce((acc, app) => {
+                const data = appsData[app.id];
+                if (data && !data.error && data.releaseDate) {
+                    const isRecent = isRecentlyUpdated(app.id);
+                    // 儲存原始 ISO 日期字串用於排序
+                    if (isRecent) {
+                        acc.recent.push({ 
+                            ...app, 
+                            releaseDate: data.releaseDate,
+                            releaseDateISO: data.releaseDateISO
+                        });
+                    } else {
+                        acc.older.push({ 
+                            ...app, 
+                            releaseDate: data.releaseDate,
+                            releaseDateISO: data.releaseDateISO
+                        });
+                    }
+                } else if (loading[app.id]) {
+                    acc.loading.push(app);
+                } else {
+                    acc.older.push(app);
+                }
+                return acc;
+            }, { recent: [], older: [], loading: [] });
+
+            // 排序：依照更新日期由新到舊
+            const sortByDate = (a, b) => {
+                if (!a.releaseDateISO) return 1;
+                if (!b.releaseDateISO) return -1;
+                // 比較 ISO 日期字串，新的日期排在前面
+                return new Date(b.releaseDateISO) - new Date(a.releaseDateISO);
+            };
+
+            categorizedApps.recent.sort(sortByDate);
+            categorizedApps.older.sort(sortByDate);
+
+            const renderAppCard = (app) => (
+                <div key={app.id} className="app-card">
+                    <div className="app-header">
+                        <div 
+                            className="app-icon"
+                            onClick={() => openAppStore(app.url)}
+                            title="在 App Store 中查看"
+                        >
+                            {appsData[app.id] && appsData[app.id].artworkUrl ? (
+                                <img src={appsData[app.id].artworkUrl} alt={app.name} style={{width: '100%', height: '100%', borderRadius: '14px'}} />
+                            ) : (
+                                app.name.charAt(0)
+                            )}
+                        </div>
+                        <div className="app-info">
+                            <h3 
+                                onClick={() => openAppStore(app.url)}
+                                title="在 App Store 中查看"
+                            >
+                                {appsData[app.id] && appsData[app.id].appName ? appsData[app.id].appName : app.name}
+                            </h3>
+                            <div className="app-id">
+                                {appsData[app.id] && appsData[app.id].artistName ? appsData[app.id].artistName : `ID: ${app.id}`}
+                            </div>
+                        </div>
+                    </div>
+
+                    {loading[app.id] ? (
+                        <div>
+                            <span className="status-badge status-loading">
+                                <div className="spinner"></div>
+                                檢查中
+                            </span>
+                            <LottieLoader />
+                        </div>
+                    ) : appsData[app.id] ? (
+                        appsData[app.id].error ? (
+                            <div className="error-message">
+                                ⚠️ {appsData[app.id].error}
+                            </div>
+                        ) : (
+                            <>
+                                <span className="status-badge status-success">
+                                    已檢查
+                                </span>
+                                {isNew24Hours(app.id) && (
+                                    <span className="new-badge">
+                                        🔥 最新
+                                    </span>
+                                )}
+                                <div className="version-info">
+                                    <div className="version-header">
+                                        <div className="version-number">
+                                            v{appsData[app.id].version}
+                                        </div>
+                                        <div className="version-date">
+                                            {appsData[app.id].releaseDate}
+                                        </div>
+                                    </div>
+                                    {appsData[app.id].rating && (
+                                        <div style={{marginTop: '0.8rem', fontSize: '0.9rem', color: 'var(--text-secondary)'}}>
+                                            ⭐ {appsData[app.id].rating.toFixed(1)} ({(appsData[app.id].ratingCount || 0).toLocaleString()} 則評分)
+                                        </div>
+                                    )}
+                                    {appsData[app.id].releaseNotes && (
+                                        <div className="release-notes">
+                                            <h4>更新內容</h4>
+                                            <p>{appsData[app.id].releaseNotes}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )
+                    ) : (
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                            尚未檢查
+                        </div>
+                    )}
+                </div>
+            );
+
+            return (
+                <div className="app-container">
+                    <header className="header">
+                        <h1>App Store 版本監測</h1>
+                        <p className="subtitle">即時監測銀行 App 版本更新</p>
+                    </header>
+
+                    {/* 控制區 - 檢查時隱藏 */}
+                    {checkingProgress.total === 0 && (
+                        <div className="controls">
+                            <div className="search-box">
+                                <span className="search-icon">🔍</span>
+                                <input
+                                    type="text"
+                                    className="search-input"
+                                    placeholder="搜尋銀行名稱..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <button 
+                                className="btn btn-primary" 
+                                onClick={checkAllApps}
+                                disabled={Object.values(loading).some(l => l)}
+                            >
+                                {Object.values(loading).some(l => l) ? '檢查中...' : '檢查更新'}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* 進度提示 */}
+                    {checkingProgress.total > 0 && (
+                        <div className="progress-indicator">
+                            <div className="progress-text">
+                                正在檢查 {checkingProgress.current} / {checkingProgress.total}
+                            </div>
+                            <div className="progress-bar-container">
+                                <div 
+                                    className="progress-bar" 
+                                    style={{ width: `${(checkingProgress.current / checkingProgress.total) * 100}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 載入中的 Apps */}
+                    {categorizedApps.loading.length > 0 && (
+                        <>
+                            <h2 className="section-title">
+                                檢查中
+                                <span className="section-badge">{categorizedApps.loading.length}</span>
+                            </h2>
+                            <div className="apps-grid">
+                                {categorizedApps.loading.map(renderAppCard)}
+                            </div>
+                        </>
+                    )}
+
+                    {/* 7日內更新 */}
+                    <h2 className="section-title">
+                        近 7 日更新
+                        <span className="section-badge">{categorizedApps.recent.length}</span>
+                    </h2>
+                    {categorizedApps.recent.length > 0 ? (
+                        <div className="apps-grid">
+                            {categorizedApps.recent.map(renderAppCard)}
+                        </div>
+                    ) : (
+                        <div className="empty-section">
+                            <div className="empty-section-icon">📭</div>
+                            <div>目前沒有 7 日內更新的 App</div>
+                        </div>
+                    )}
+
+                    {/* 7日以上未更新 */}
+                    <h2 className="section-title">
+                        7 日以上
+                        <span className="section-badge">{categorizedApps.older.length}</span>
+                    </h2>
+                    {categorizedApps.older.length > 0 ? (
+                        <div className="apps-grid">
+                            {categorizedApps.older.map(renderAppCard)}
+                        </div>
+                    ) : (
+                        <div className="empty-section">
+                            <div className="empty-section-icon">✨</div>
+                            <div>所有 App 都在 7 日內更新過！</div>
+                        </div>
+                    )}
+
+                    {lastUpdated && (
+                        <div className="last-updated">
+                            上次更新：{lastUpdated.toLocaleString('zh-TW')}
+                        </div>
+                    )}
+
+                    <div style={{
+                        textAlign: 'center',
+                        marginTop: '3rem',
+                        paddingTop: '2rem',
+                        borderTop: '1px solid var(--border)',
+                        color: 'var(--text-secondary)',
+                        fontSize: '0.9rem'
+                    }}>
+                        功能開發：致賢
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<AppStoreMonitor />, document.getElementById('root'));
+    </script>
+</body>
+</html>
